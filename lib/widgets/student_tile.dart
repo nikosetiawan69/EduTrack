@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_track/providers/student_provider.dart';
 import 'package:edu_track/models/student.dart';
-import 'package:edu_track/providers/student_provider.dart';
 import 'package:edu_track/pages/student_form_page.dart';
 import 'package:edu_track/pages/student_detail_page.dart';
 import 'package:provider/provider.dart';
