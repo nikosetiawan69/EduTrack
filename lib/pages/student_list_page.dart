@@ -12,24 +12,46 @@ class StudentListPage extends StatelessWidget {
     final studentProvider = Provider.of<StudentProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Daftar Siswa',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue, Colors.purpleAccent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+      backgroundColor: Colors.lightBlue[50], // Background utama biru muda
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80.0), // tinggi appbar pas
+        child: ClipRRect(
+          borderRadius:
+              const BorderRadius.vertical(bottom: Radius.circular(20)),
+          child: AppBar(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.people, size: 28, color: Colors.white),
+                SizedBox(width: 8),
+                Text(
+                  'Daftar Siswa',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ],
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue, Colors.purpleAccent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow( // 👉 shadow elegan
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -59,11 +81,13 @@ class StudentListPage extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.info_outline, size: 48, color: Colors.blueGrey),
+                        Icon(Icons.info_outline,
+                            size: 48, color: Colors.blueGrey),
                         SizedBox(height: 12),
                         Text(
                           'Tidak ada data siswa',
-                          style: TextStyle(fontSize: 16, color: Colors.blueGrey),
+                          style:
+                              TextStyle(fontSize: 16, color: Colors.blueGrey),
                         ),
                       ],
                     ),
@@ -73,17 +97,33 @@ class StudentListPage extends StatelessWidget {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final student = studentProvider.students[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: Colors.lightBlueAccent.shade100,
-                            width: 1.5,
+
+                      return TweenAnimationBuilder(
+                        tween: Tween<double>(begin: 0, end: 1),
+                        duration:
+                            Duration(milliseconds: 400 + (index * 100)), // delay tiap item
+                        builder: (context, double value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, 50 * (1 - value)),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: Colors.lightBlueAccent.shade100,
+                              width: 1.5,
+                            ),
                           ),
+                          elevation: 3,
+                          child: StudentTile(student: student),
                         ),
-                        elevation: 3,
-                        child: StudentTile(student: student),
                       );
                     },
                     childCount: studentProvider.students.length,
