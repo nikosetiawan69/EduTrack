@@ -3,6 +3,7 @@ import 'package:edu_track/providers/student_provider.dart';
 import 'package:edu_track/models/student.dart';
 import 'package:edu_track/utils/validator.dart';
 import 'package:provider/provider.dart';
+import 'package:lottie/lottie.dart';
 
 class StudentFormPage extends StatefulWidget {
   final Student? student;
@@ -14,21 +15,30 @@ class StudentFormPage extends StatefulWidget {
 }
 
 class _StudentFormPageState extends State<StudentFormPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  int _currentStep = 0;
+  bool _showSuccessAnimation = false;
 
-  // Animations
+  // Animations for form content
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
 
+  // Animation for success
+  late final AnimationController _successAnimationController;
+  late final Animation<double> _successFadeAnimation;
+  late final Animation<double> _successScaleAnimation;
+
   // Controllers
   late final TextEditingController _nisnController;
   late final TextEditingController _namaLengkapController;
-  late final TextEditingController _jenisKelaminController;
-  late final TextEditingController _agamaController;
+  String? _selectedGender;
+  String? _selectedReligion;
+  int? _selectedYear;
+  int? _selectedMonth;
+  int? _selectedDay;
   late final TextEditingController _tempatLahirController;
-  late final TextEditingController _tanggalLahirController;
   late final TextEditingController _noHpController;
   late final TextEditingController _nikController;
   late final TextEditingController _jalanController;
@@ -48,7 +58,17 @@ class _StudentFormPageState extends State<StudentFormPage>
   void initState() {
     super.initState();
 
-    // Init animation
+    // Parse initial date if editing
+    if (widget.student?.tanggalLahir != null) {
+      final parsedDate = DateTime.tryParse(widget.student!.tanggalLahir);
+      if (parsedDate != null) {
+        _selectedYear = parsedDate.year;
+        _selectedMonth = parsedDate.month;
+        _selectedDay = parsedDate.day;
+      }
+    }
+
+    // Init form content animation
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -58,20 +78,29 @@ class _StudentFormPageState extends State<StudentFormPage>
       begin: const Offset(0, 0.06),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
     _controller.forward();
+
+    // Init success animation
+    _successAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _successFadeAnimation = CurvedAnimation(
+      parent: _successAnimationController,
+      curve: Curves.easeIn,
+    );
+    _successScaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _successAnimationController, curve: Curves.elasticOut),
+    );
 
     // Init controllers with optional initial student data
     _nisnController = TextEditingController(text: widget.student?.nisn ?? '');
     _namaLengkapController =
         TextEditingController(text: widget.student?.namaLengkap ?? '');
-    _jenisKelaminController =
-        TextEditingController(text: widget.student?.jenisKelamin ?? '');
-    _agamaController = TextEditingController(text: widget.student?.agama ?? '');
+    _selectedGender = widget.student?.jenisKelamin;
+    _selectedReligion = widget.student?.agama;
     _tempatLahirController =
         TextEditingController(text: widget.student?.tempatLahir ?? '');
-    _tanggalLahirController =
-        TextEditingController(text: widget.student?.tanggalLahir ?? '');
     _noHpController = TextEditingController(text: widget.student?.noHp ?? '');
     _nikController = TextEditingController(text: widget.student?.nik ?? '');
     _jalanController = TextEditingController(text: widget.student?.jalan ?? '');
@@ -84,24 +113,33 @@ class _StudentFormPageState extends State<StudentFormPage>
         TextEditingController(text: widget.student?.kabupaten ?? '');
     _provinsiController =
         TextEditingController(text: widget.student?.provinsi ?? '');
-    _kodePosController = TextEditingController(text: widget.student?.kodePos ?? '');
+    _kodePosController =
+        TextEditingController(text: widget.student?.kodePos ?? '');
     _namaAyahController =
         TextEditingController(text: widget.student?.namaAyah ?? '');
-    _namaIbuController = TextEditingController(text: widget.student?.namaIbu ?? '');
-    _namaWaliController = TextEditingController(text: widget.student?.namaWali ?? '');
+    _namaIbuController =
+        TextEditingController(text: widget.student?.namaIbu ?? '');
+    _namaWaliController =
+        TextEditingController(text: widget.student?.namaWali ?? '');
     _alamatOrangTuaController =
         TextEditingController(text: widget.student?.alamatOrangTua ?? '');
+  }
+
+  // Get days in month
+  int _daysInMonth(int year, int month) {
+    if (month == 2) {
+      return DateTime(year, month + 1, 0).day; // Accounts for leap year
+    }
+    return month <= 7 ? (month % 2 == 1 ? 31 : 30) : (month % 2 == 0 ? 31 : 30);
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _successAnimationController.dispose();
     _nisnController.dispose();
     _namaLengkapController.dispose();
-    _jenisKelaminController.dispose();
-    _agamaController.dispose();
     _tempatLahirController.dispose();
-    _tanggalLahirController.dispose();
     _noHpController.dispose();
     _nikController.dispose();
     _jalanController.dispose();
@@ -121,13 +159,31 @@ class _StudentFormPageState extends State<StudentFormPage>
 
   void _saveStudent() {
     if (_formKey.currentState!.validate()) {
+      // Validate date selection
+      if (_selectedYear == null || _selectedMonth == null || _selectedDay == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tanggal Lahir wajib diisi lengkap')),
+        );
+        return;
+      }
+
+      final selectedDate = DateTime(_selectedYear!, _selectedMonth!, _selectedDay!);
+      if (selectedDate.isAfter(DateTime.now()) || selectedDate.isBefore(DateTime(1990))) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tanggal Lahir tidak valid')),
+        );
+        return;
+      }
+
+      setState(() => _showSuccessAnimation = true);
+      _successAnimationController.forward();
       final student = Student(
         nisn: _nisnController.text.trim(),
         namaLengkap: _namaLengkapController.text.trim(),
-        jenisKelamin: _jenisKelaminController.text.trim(),
-        agama: _agamaController.text.trim(),
+        jenisKelamin: _selectedGender ?? '',
+        agama: _selectedReligion ?? '',
         tempatLahir: _tempatLahirController.text.trim(),
-        tanggalLahir: _tanggalLahirController.text.trim(),
+        tanggalLahir: "${_selectedDay}-${_selectedMonth}-${_selectedYear}",
         noHp: _noHpController.text.trim(),
         nik: _nikController.text.trim(),
         jalan: _jalanController.text.trim(),
@@ -149,17 +205,24 @@ class _StudentFormPageState extends State<StudentFormPage>
       final provider = Provider.of<StudentProvider>(context, listen: false);
       if (widget.student == null) {
         provider.addStudent(student);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Siswa berhasil ditambahkan')),
-        );
       } else {
         provider.updateStudent(widget.student!.nisn, student);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data siswa berhasil diperbarui')),
-        );
       }
 
-      Navigator.pop(context);
+      Future.delayed(const Duration(seconds: 2), () {
+        setState(() => _showSuccessAnimation = false);
+        _successAnimationController.reset();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.student == null
+                  ? 'Siswa berhasil ditambahkan ✅'
+                  : 'Data siswa berhasil diperbarui ✅',
+            ),
+          ),
+        );
+        Navigator.pop(context);
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Periksa kembali data yang wajib diisi')),
@@ -167,250 +230,325 @@ class _StudentFormPageState extends State<StudentFormPage>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 180,
-            pinned: true,
-            elevation: 0, // Hilangkan bayangan bawaan
-            flexibleSpace: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue, Colors.lightBlueAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: FlexibleSpaceBar(
-                  centerTitle: true,
-                  title: Column(
-                    mainAxisAlignment: MainAxisAlignment.center, // Tengah vertikal
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            widget.student == null ? Icons.person_add : Icons.edit,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            widget.student == null ? 'Tambah Data Siswa' : 'Edit Data Siswa',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4), // Jarak kecil antara judul dan teks
-                      const Text(
-                        'Mohon isi form dengan benar',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                  titlePadding: EdgeInsets.zero, // Hapus padding bawaan
-                  collapseMode: CollapseMode.parallax, // Teks tambahan hilang saat collapse
-                ),
-              ),
-            ),
-            automaticallyImplyLeading: true,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-
-          // Titik-titik 3 di tengah (visual cue)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8.0, bottom: 16),
-              child: Center(
-                child: Container(
-                  width: 48,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.blueGrey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Form (wrap with Fade+Slide animations)
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.white, Color(0xFFB3E5FC)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 4),
-                        _buildInputField(Icons.badge, "NISN", _nisnController,
-                            Validators.requiredValidator,
-                            keyboardType: TextInputType.number),
-                        _buildInputField(Icons.person, "Nama Lengkap",
-                            _namaLengkapController, Validators.requiredValidator),
-                        _buildInputField(Icons.wc, "Jenis Kelamin",
-                            _jenisKelaminController, Validators.requiredValidator),
-                        _buildInputField(Icons.account_balance, "Agama",
-                            _agamaController, Validators.requiredValidator),
-                        _buildInputField(Icons.location_city, "Tempat Lahir",
-                            _tempatLahirController, Validators.requiredValidator),
-                        _buildInputField(Icons.calendar_today, "Tanggal Lahir",
-                            _tanggalLahirController, Validators.requiredValidator,
-                            hintText: 'dd-mm-yyyy'),
-                        _buildInputField(Icons.phone, "No. Tlp/HP", _noHpController,
-                            Validators.phoneValidator,
-                            keyboardType: TextInputType.phone),
-                        _buildInputField(Icons.credit_card, "NIK", _nikController,
-                            Validators.requiredValidator,
-                            keyboardType: TextInputType.number),
-
-                        const SizedBox(height: 18),
-                        _sectionTitle("Alamat"),
-                        _buildInputField(Icons.map, "Jalan", _jalanController,
-                            Validators.requiredValidator),
-                        _buildInputField(Icons.format_list_numbered, "RT/RW",
-                            _rtRwController, Validators.requiredValidator),
-                        _buildInputField(Icons.home_work, "Dusun", _dusunController,
-                            Validators.requiredValidator),
-                        _buildInputField(Icons.location_on, "Desa", _desaController,
-                            Validators.requiredValidator),
-                        _buildInputField(Icons.apartment, "Kecamatan",
-                            _kecamatanController, Validators.requiredValidator),
-                        _buildInputField(Icons.location_city, "Kabupaten",
-                            _kabupatenController, Validators.requiredValidator),
-                        _buildInputField(Icons.flag, "Provinsi", _provinsiController,
-                            Validators.requiredValidator),
-                        _buildInputField(Icons.local_post_office, "Kode Pos",
-                            _kodePosController, Validators.requiredValidator,
-                            keyboardType: TextInputType.number),
-
-                        const SizedBox(height: 18),
-                        _sectionTitle("Orang Tua / Wali"),
-                        _buildInputField(Icons.male, "Nama Ayah", _namaAyahController,
-                            Validators.requiredValidator),
-                        _buildInputField(Icons.female, "Nama Ibu", _namaIbuController,
-                            Validators.requiredValidator),
-                        _buildInputField(Icons.group, "Nama Wali (jika ada)",
-                            _namaWaliController, null),
-                        _buildInputField(Icons.home, "Alamat Orang Tua",
-                            _alamatOrangTuaController, Validators.requiredValidator),
-
-                        const SizedBox(height: 24),
-
-                        // Save button full width
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _saveStudent,
-                            icon: const Icon(Icons.save),
-                            label: const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12.0),
-                              child: Text(
-                                "Simpan",
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.lightBlueAccent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 3,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 36),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Small helper: section title
-  Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0, bottom: 6.0),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: const TextStyle(
-              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-        ),
-      ),
-    );
-  }
-
-  // Custom input builder with icon and card border
   Widget _buildInputField(
-    IconData icon,
     String label,
     TextEditingController controller,
-    String? Function(String?)? validator, {
+    IconData icon, {
     TextInputType? keyboardType,
-    String? hintText,
+    String? Function(String?)? validator,
   }) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.lightBlueAccent, width: 1),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        validator: validator,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.lightBlueAccent),
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
       ),
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.lightBlueAccent),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: controller,
-                validator: validator,
-                keyboardType: keyboardType,
-                decoration: InputDecoration(
-                  labelText: label,
-                  hintText: hintText,
-                  border: InputBorder.none,
+    );
+  }
+
+  Widget _buildDateDropdown({
+    required String label,
+    required List<int> items,
+    required int? value,
+    required void Function(int?) onChanged,
+    required String? Function(int?)? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: DropdownButtonFormField<int>(
+        value: value,
+        decoration: InputDecoration(
+          prefixIcon: Icon(Icons.arrow_drop_down, color: Colors.lightBlueAccent),
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        items: items
+            .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
+            .toList(),
+        onChanged: onChanged,
+        validator: validator,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Generate year, month, day lists
+    final years = List.generate(36, (index) => 1990 + index);
+    final months = List.generate(12, (index) => index + 1);
+    int maxDays = 31;
+    if (_selectedMonth != null && _selectedYear != null) {
+      maxDays = _daysInMonth(_selectedYear!, _selectedMonth!);
+    }
+    final days = List.generate(maxDays, (index) => index + 1);
+
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70.0),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+          child: AppBar(
+            title: Text(
+              widget.student == null ? 'Tambah Data Siswa' : 'Edit Data Siswa',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.lightBlueAccent,
+            elevation: 0,
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue, Colors.lightBlueAccent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
             ),
-          ],
+          ),
         ),
+      ),
+      body: Stack(
+        children: [
+          FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Form(
+                key: _formKey,
+                child: Stepper(
+                  type: StepperType.horizontal,
+                  currentStep: _currentStep,
+                  onStepContinue: () {
+                    if (_currentStep < 2) {
+                      setState(() => _currentStep += 1);
+                    } else {
+                      _saveStudent();
+                    }
+                  },
+                  onStepCancel: () {
+                    if (_currentStep > 0) {
+                      setState(() => _currentStep -= 1);
+                    }
+                  },
+                  onStepTapped: (step) {
+                    setState(() => _currentStep = step);
+                  },
+                  steps: [
+                    Step(
+                      title: GestureDetector(
+                        onTap: () => setState(() => _currentStep = 0),
+                        child: const Text(
+                          "Data Diri",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      isActive: _currentStep >= 0,
+                      state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+                      content: Column(
+                        children: [
+                          _buildInputField('NISN', _nisnController, Icons.badge,
+                              keyboardType: TextInputType.number,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Nama Lengkap', _namaLengkapController, Icons.person,
+                              validator: Validators.requiredValidator),
+                          DropdownButtonFormField<String>(
+                            value: _selectedGender,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.wc, color: Colors.lightBlueAccent),
+                              labelText: "Jenis Kelamin",
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            items: ["Laki-laki", "Perempuan"]
+                                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                                .toList(),
+                            onChanged: (val) => setState(() => _selectedGender = val),
+                            validator: (val) => val == null ? "Wajib diisi" : null,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInputField('Tempat Lahir', _tempatLahirController, Icons.location_city,
+                              validator: Validators.requiredValidator),
+                          // Date selection with separate dropdowns (navbar-like)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildDateDropdown(
+                                  label: "Tahun",
+                                  items: years,
+                                  value: _selectedYear,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedYear = val;
+                                      // Reset month and day if year changes
+                                      if (val != null && _selectedMonth != null) {
+                                        final daysInNewMonth = _daysInMonth(val, _selectedMonth!);
+                                        if (_selectedDay != null && _selectedDay! > daysInNewMonth) {
+                                          _selectedDay = daysInNewMonth;
+                                        }
+                                      } else {
+                                        _selectedMonth = null;
+                                        _selectedDay = null;
+                                      }
+                                    });
+                                  },
+                                  validator: (val) => val == null ? "Tahun wajib" : null,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildDateDropdown(
+                                  label: "Bulan",
+                                  items: months,
+                                  value: _selectedMonth,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedMonth = val;
+                                      // Reset day if month changes
+                                      if (val != null && _selectedYear != null) {
+                                        final daysInMonth = _daysInMonth(_selectedYear!, val);
+                                        if (_selectedDay != null && _selectedDay! > daysInMonth) {
+                                          _selectedDay = daysInMonth;
+                                        }
+                                      } else {
+                                        _selectedDay = null;
+                                      }
+                                    });
+                                  },
+                                  validator: (val) => val == null ? "Bulan wajib" : null,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildDateDropdown(
+                                  label: "Hari",
+                                  items: days,
+                                  value: _selectedDay,
+                                  onChanged: (val) => setState(() => _selectedDay = val),
+                                  validator: (val) => val == null ? "Hari wajib" : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: _selectedReligion,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.self_improvement, color: Colors.lightBlueAccent),
+                              labelText: "Agama",
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            items: ["Islam", "Kristen", "Katolik", "Hindu", "Budha", "Konghucu"]
+                                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                                .toList(),
+                            onChanged: (val) => setState(() => _selectedReligion = val),
+                            validator: (val) => val == null ? "Wajib diisi" : null,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInputField('No. Tlp/HP', _noHpController, Icons.phone,
+                              keyboardType: TextInputType.phone, validator: Validators.phoneValidator),
+                          _buildInputField('NIK', _nikController, Icons.credit_card,
+                              keyboardType: TextInputType.number, validator: Validators.requiredValidator),
+                        ],
+                      ),
+                    ),
+                    Step(
+                      title: GestureDetector(
+                        onTap: () => setState(() => _currentStep = 1),
+                        child: const Text(
+                          "Alamat",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      isActive: _currentStep >= 1,
+                      state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+                      content: Column(
+                        children: [
+                          _buildInputField('Jalan', _jalanController, Icons.map,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('RT/RW', _rtRwController, Icons.format_list_numbered,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Dusun', _dusunController, Icons.home_work,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Desa', _desaController, Icons.villa,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Kecamatan', _kecamatanController, Icons.apartment,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Kabupaten', _kabupatenController, Icons.location_city,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Provinsi', _provinsiController, Icons.flag,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Kode Pos', _kodePosController, Icons.local_post_office,
+                              keyboardType: TextInputType.number, validator: Validators.requiredValidator),
+                        ],
+                      ),
+                    ),
+                    Step(
+                      title: GestureDetector(
+                        onTap: () => setState(() => _currentStep = 2),
+                        child: const Text(
+                          "Orang Tua",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      isActive: _currentStep >= 2,
+                      state: _currentStep == 2 ? StepState.editing : StepState.indexed,
+                      content: Column(
+                        children: [
+                          _buildInputField('Nama Ayah', _namaAyahController, Icons.male,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Nama Ibu', _namaIbuController, Icons.female,
+                              validator: Validators.requiredValidator),
+                          _buildInputField('Nama Wali (jika ada)', _namaWaliController, Icons.group),
+                          _buildInputField('Alamat Orang Tua', _alamatOrangTuaController, Icons.home,
+                              validator: Validators.requiredValidator),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (_showSuccessAnimation)
+            Stack(
+              children: [
+                // Dark overlay to dim the background
+                Container(
+                  color: Colors.black.withOpacity(0.6),
+                ),
+                Center(
+                  child: FadeTransition(
+                    opacity: _successFadeAnimation,
+                    child: ScaleTransition(
+                      scale: _successScaleAnimation,
+                      child: Lottie.network(
+                        'https://assets4.lottiefiles.com/packages/lf20_jbrw3hcz.json',
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }

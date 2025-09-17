@@ -1,3 +1,4 @@
+// lib/pages/student_list_page.dart
 import 'package:flutter/material.dart';
 import 'package:edu_track/providers/student_provider.dart';
 import 'package:edu_track/widgets/student_tile.dart';
@@ -12,92 +13,116 @@ class StudentListPage extends StatelessWidget {
     final studentProvider = Provider.of<StudentProvider>(context);
 
     return Scaffold(
-      // 🔹 Background linear gradient biru → putih (sama seperti detail page)
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.white, Color(0xFFE1F5FE)], // putih → biru muda
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Column(
-          children: [
-            // 🔹 AppBar putih dengan border radius bawah
-            PreferredSize(
-              preferredSize: const Size.fromHeight(70),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(24),
-                ),
-                child: AppBar(
-                  backgroundColor: Colors.white,
-                  elevation: 4,
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.school, color: Colors.blueAccent),
-                      SizedBox(width: 8),
-                      Text(
-                        'Edu Track',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+      body: CustomScrollView(
+        slivers: [
+          // SliverAppBar dengan gradasi seperti form
+          SliverAppBar(
+            expandedHeight: 180,
+            pinned: true,
+            elevation: 0,
+            flexibleSpace: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue, Colors.lightBlueAccent],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                ),
+                child: const FlexibleSpaceBar(
                   centerTitle: true,
+                  title: Text(
+                    "Daftar Siswa",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
+                  ),
+                  titlePadding: EdgeInsets.only(bottom: 12),
                 ),
               ),
             ),
+          ),
 
-            // 🔹 Subjudul "Layanan Data Siswa"
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              color: Colors.transparent,
-              child: const Text(
-                "Layanan Data Siswa",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
+          // Konten list
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12.0, bottom: 8),
+              child: Center(
+                child: Container(
+                  width: 48,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.blueGrey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ),
+          ),
 
-            // 🔹 List Data Siswa
-            Expanded(
-              child: studentProvider.students.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Tidak ada data siswa.',
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: studentProvider.students.length,
-                      itemBuilder: (context, index) {
-                        return StudentTile(
-                          student: studentProvider.students[index],
-                        );
-                      },
+          studentProvider.students.isEmpty
+              ? SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.info_outline,
+                            size: 48, color: Colors.blueGrey),
+                        SizedBox(height: 12),
+                        Text(
+                          "Tidak ada data siswa",
+                          style: TextStyle(
+                              fontSize: 16, color: Colors.blueGrey),
+                        ),
+                      ],
                     ),
-            ),
-          ],
-        ),
+                  ),
+                )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final student = studentProvider.students[index];
+                      return Card(
+                        margin:
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Colors.lightBlueAccent.shade100,
+                            width: 1.5,
+                          ),
+                        ),
+                        elevation: 3,
+                        child: StudentTile(student: student),
+                      );
+                    },
+                    childCount: studentProvider.students.length,
+                  ),
+                ),
+        ],
       ),
 
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
+      // Tombol tambah
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const StudentFormPage()),
           );
         },
-        child: const Icon(Icons.add, color: Colors.blueAccent),
+        backgroundColor: Colors.lightBlueAccent,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          "Tambah",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
