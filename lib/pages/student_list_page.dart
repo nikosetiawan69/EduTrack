@@ -1,7 +1,6 @@
-// lib/pages/student_list_page.dart
-import 'package:flutter/material.dart';
 import 'package:edu_track/providers/student_provider.dart';
 import 'package:edu_track/widgets/student_tile.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'student_form_page.dart';
 
@@ -13,43 +12,31 @@ class StudentListPage extends StatelessWidget {
     final studentProvider = Provider.of<StudentProvider>(context);
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // SliverAppBar dengan gradasi seperti form
-          SliverAppBar(
-            expandedHeight: 180,
-            pinned: true,
-            elevation: 0,
-            flexibleSpace: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue, Colors.lightBlueAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: const FlexibleSpaceBar(
-                  centerTitle: true,
-                  title: Text(
-                    "Daftar Siswa",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                    ),
-                  ),
-                  titlePadding: EdgeInsets.only(bottom: 12),
-                ),
-              ),
+      appBar: AppBar(
+        title: const Text(
+          'Daftar Siswa',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue, Colors.purpleAccent],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-
-          // Konten list
+        ),
+      ),
+      body: CustomScrollView(
+        slivers: [
+          // Garis horizontal kecil di atas daftar
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.only(top: 12.0, bottom: 8),
@@ -65,7 +52,6 @@ class StudentListPage extends StatelessWidget {
               ),
             ),
           ),
-
           studentProvider.students.isEmpty
               ? SliverFillRemaining(
                   hasScrollBody: false,
@@ -73,13 +59,11 @@ class StudentListPage extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.info_outline,
-                            size: 48, color: Colors.blueGrey),
+                        Icon(Icons.info_outline, size: 48, color: Colors.blueGrey),
                         SizedBox(height: 12),
                         Text(
-                          "Tidak ada data siswa",
-                          style: TextStyle(
-                              fontSize: 16, color: Colors.blueGrey),
+                          'Tidak ada data siswa',
+                          style: TextStyle(fontSize: 16, color: Colors.blueGrey),
                         ),
                       ],
                     ),
@@ -90,8 +74,7 @@ class StudentListPage extends StatelessWidget {
                     (context, index) {
                       final student = studentProvider.students[index];
                       return Card(
-                        margin:
-                            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                           side: BorderSide(
@@ -108,7 +91,6 @@ class StudentListPage extends StatelessWidget {
                 ),
         ],
       ),
-
       // Tombol tambah
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -120,7 +102,7 @@ class StudentListPage extends StatelessWidget {
         backgroundColor: Colors.lightBlueAccent,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
-          "Tambah",
+          'Tambah',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),

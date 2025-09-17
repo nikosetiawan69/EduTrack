@@ -306,12 +306,12 @@ class _StudentFormPageState extends State<StudentFormPage>
               ),
             ),
             centerTitle: true,
-            backgroundColor: Colors.lightBlueAccent,
+            backgroundColor: Colors.blue,
             elevation: 0,
             flexibleSpace: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.blue, Colors.lightBlueAccent],
+                  colors: [Colors.blue, Colors.purpleAccent],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),

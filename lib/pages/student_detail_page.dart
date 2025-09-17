@@ -9,23 +9,34 @@ class StudentDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 🔹 AppBar dengan border radius bawah
+      // 🔹 AppBar dengan gradasi biru ungu muda dan border radius bawah
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70),
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(
             bottom: Radius.circular(24),
           ),
-          child: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 4,
-            title: const Text(
-              'Detail Siswa',
-              style: TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.bold),
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFE6F0FA), Color(0xFFF3E5F5)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-            centerTitle: true,
-            iconTheme: const IconThemeData(color: Colors.black),
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 4,
+              title: const Text(
+                'Detail Siswa',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              centerTitle: true,
+              iconTheme: const IconThemeData(color: Colors.black87),
+            ),
           ),
         ),
       ),
@@ -34,31 +45,31 @@ class StudentDetailPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildSectionTitle(Icons.person, 'Data Pribadi'),
-          _buildDetailBox(Icons.badge, 'NISN', student.nisn),
-          _buildDetailBox(Icons.person, 'Nama Lengkap', student.namaLengkap),
+          _buildSectionTitle(Icons.account_circle, 'Data Pribadi'),
+          _buildDetailBox(Icons.verified_user, 'NISN', student.nisn),
+          _buildDetailBox(Icons.person_outline, 'Nama Lengkap', student.namaLengkap),
           _buildDetailBox(Icons.wc, 'Jenis Kelamin', student.jenisKelamin),
-          _buildDetailBox(Icons.star, 'Agama', student.agama),
-          _buildDetailBox(Icons.cake, 'Tempat, Tanggal Lahir',
+          _buildDetailBox(Icons.lightbulb_outline, 'Agama', student.agama),
+          _buildDetailBox(Icons.calendar_today, 'Tempat, Tanggal Lahir',
               '${student.tempatLahir}, ${student.tanggalLahir}'),
-          _buildDetailBox(Icons.phone, 'No. Tlp/HP', student.noHp),
-          _buildDetailBox(Icons.credit_card, 'NIK', student.nik),
+          _buildDetailBox(Icons.phone_android, 'No. Tlp/HP', student.noHp),
+          _buildDetailBox(Icons.card_membership, 'NIK', student.nik),
 
           const SizedBox(height: 20),
-          _buildSectionTitle(Icons.home, 'Alamat'),
-          _buildDetailBox(Icons.map, 'Jalan', student.jalan),
-          _buildDetailBox(Icons.home_work, 'RT/RW', student.rtRw),
-          _buildDetailBox(Icons.location_city, 'Dusun', student.dusun),
-          _buildDetailBox(Icons.location_on, 'Desa', student.desa),
-          _buildDetailBox(Icons.place, 'Kecamatan', student.kecamatan),
-          _buildDetailBox(Icons.apartment, 'Kabupaten', student.kabupaten),
-          _buildDetailBox(Icons.flag, 'Provinsi', student.provinsi),
-          _buildDetailBox(Icons.local_post_office, 'Kode Pos', student.kodePos),
+          _buildSectionTitle(Icons.location_city, 'Alamat'),
+          _buildDetailBox(Icons.directions, 'Jalan', student.jalan),
+          _buildDetailBox(Icons.format_list_numbered, 'RT/RW', student.rtRw),
+          _buildDetailBox(Icons.landscape, 'Dusun', student.dusun),
+          _buildDetailBox(Icons.home, 'Desa', student.desa),
+          _buildDetailBox(Icons.local_taxi, 'Kecamatan', student.kecamatan),
+          _buildDetailBox(Icons.domain, 'Kabupaten', student.kabupaten),
+          _buildDetailBox(Icons.map, 'Provinsi', student.provinsi),
+          _buildDetailBox(Icons.markunread_mailbox, 'Kode Pos', student.kodePos),
 
           const SizedBox(height: 20),
-          _buildSectionTitle(Icons.family_restroom, 'Orang Tua/Wali'),
-          _buildDetailBox(Icons.male, 'Nama Ayah', student.namaAyah),
-          _buildDetailBox(Icons.female, 'Nama Ibu', student.namaIbu),
+          _buildSectionTitle(Icons.people, 'Orang Tua/Wali'),
+          _buildDetailBox(Icons.man, 'Nama Ayah', student.namaAyah),
+          _buildDetailBox(Icons.woman, 'Nama Ibu', student.namaIbu),
           if (student.namaWali != null)
             _buildDetailBox(Icons.supervisor_account, 'Nama Wali', student.namaWali!),
           _buildDetailBox(Icons.location_pin, 'Alamat Orang Tua', student.alamatOrangTua),
@@ -113,7 +124,9 @@ class StudentDetailPage extends StatelessWidget {
             child: Text(
               '$label:',
               style: const TextStyle(
-                  fontWeight: FontWeight.w600, color: Colors.black87),
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
           ),
           Expanded(
