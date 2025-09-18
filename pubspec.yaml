@@ -37,10 +37,11 @@ dependencies:
   supabase_flutter: ^2.10.1
   # Dependency baru: Provider untuk state management (CRUD siswa)
   provider: ^6.1.2
+  # Lottie digunakan di StudentFormPage untuk animasi sukses
+  lottie: ^2.7.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  lottie: ^2.7.0
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

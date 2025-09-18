@@ -8,8 +8,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://mwtzrporzmfonpwohdjy.supabase.co', 
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13dHpycG9yem1mb25wd29oZGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5OTE4OTMsImV4cCI6MjA3MzU2Nzg5M30.TwFApvWab9weURjYiyS9bOk9nFP29ZtKkqmGFJqCDtg',
+    url: 'https://tcpqyhjfidxiymehybde.supabase.co', 
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjcHF5aGpmaWR4aXltZWh5YmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxOTg3NzAsImV4cCI6MjA3Mzc3NDc3MH0.AXuvcZBvfVCwlpdFBTqokljxfNQYj6LQ-NbbQn37m5Y',
   );
 
   runApp(const EduTrackApp());

@@ -1,4 +1,3 @@
-// lib/models/student.dart
 class Student {
   final String nisn;
   final String namaLengkap;
@@ -6,10 +5,10 @@ class Student {
   final String agama;
   final String tempatLahir;
   final String tanggalLahir;
-  final String noHp;
+  final String? noHp;
   final String nik;
-  final String jalan;
-  final String rtRw;
+  final String? jalan;
+  final String? rtRw;
   final String dusun;
   final String desa;
   final String kecamatan;
@@ -28,10 +27,10 @@ class Student {
     required this.agama,
     required this.tempatLahir,
     required this.tanggalLahir,
-    required this.noHp,
+    this.noHp,
     required this.nik,
-    required this.jalan,
-    required this.rtRw,
+    this.jalan,
+    this.rtRw,
     required this.dusun,
     required this.desa,
     required this.kecamatan,
@@ -46,51 +45,26 @@ class Student {
 
   factory Student.fromMap(Map<String, dynamic> map) {
     return Student(
-      nisn: map['nisn'],
-      namaLengkap: map['namaLengkap'],
-      jenisKelamin: map['jenisKelamin'],
-      agama: map['agama'],
-      tempatLahir: map['tempatLahir'],
-      tanggalLahir: map['tanggalLahir'],
-      noHp: map['noHp'],
-      nik: map['nik'],
-      jalan: map['jalan'],
-      rtRw: map['rtRw'],
-      dusun: map['dusun'],
-      desa: map['desa'],
-      kecamatan: map['kecamatan'],
-      kabupaten: map['kabupaten'],
-      provinsi: map['provinsi'],
-      kodePos: map['kodePos'],
-      namaAyah: map['namaAyah'],
-      namaIbu: map['namaIbu'],
-      namaWali: map['namaWali'],
-      alamatOrangTua: map['alamatOrangTua'],
+      nisn: map['nisn'] as String,
+      namaLengkap: map['nama_lengkap'] as String,
+      jenisKelamin: map['jenis_kelamin'] as String,
+      agama: map['agama'] as String,
+      tempatLahir: map['tempat_lahir'] as String,
+      tanggalLahir: map['tanggal_lahir'] as String,
+      noHp: map['no_hp'] as String?,
+      nik: map['nik'] as String,
+      jalan: map['jalan'] as String?,
+      rtRw: map['rt_rw'] as String?,
+      dusun: map['dusun'] as String,
+      desa: map['desa'] as String,
+      kecamatan: map['kecamatan'] as String,
+      kabupaten: map['kabupaten'] as String,
+      provinsi: map['provinsi'] as String,
+      kodePos: map['kode_pos'] as String,
+      namaAyah: map['nama_ayah'] as String,
+      namaIbu: map['nama_ibu'] as String,
+      namaWali: map['nama_wali'] as String?,
+      alamatOrangTua: map['alamat_orang_tua'] as String,
     );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'nisn': nisn,
-      'namaLengkap': namaLengkap,
-      'jenisKelamin': jenisKelamin,
-      'agama': agama,
-      'tempatLahir': tempatLahir,
-      'tanggalLahir': tanggalLahir,
-      'noHp': noHp,
-      'nik': nik,
-      'jalan': jalan,
-      'rtRw': rtRw,
-      'dusun': dusun,
-      'desa': desa,
-      'kecamatan': kecamatan,
-      'kabupaten': kabupaten,
-      'provinsi': provinsi,
-      'kodePos': kodePos,
-      'namaAyah': namaAyah,
-      'namaIbu': namaIbu,
-      'namaWali': namaWali,
-      'alamatOrangTua': alamatOrangTua,
-    };
   }
 }

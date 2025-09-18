@@ -47,32 +47,36 @@ class StudentDetailPage extends StatelessWidget {
         children: [
           _buildSectionTitle(Icons.account_circle, 'Data Pribadi'),
           _buildDetailBox(Icons.verified_user, 'NISN', student.nisn),
-          _buildDetailBox(Icons.person_outline, 'Nama Lengkap', student.namaLengkap),
+          _buildDetailBox(
+              Icons.person_outline, 'Nama Lengkap', student.namaLengkap),
           _buildDetailBox(Icons.wc, 'Jenis Kelamin', student.jenisKelamin),
           _buildDetailBox(Icons.lightbulb_outline, 'Agama', student.agama),
           _buildDetailBox(Icons.calendar_today, 'Tempat, Tanggal Lahir',
               '${student.tempatLahir}, ${student.tanggalLahir}'),
-          _buildDetailBox(Icons.phone_android, 'No. Tlp/HP', student.noHp),
+          _buildDetailBox(
+              Icons.phone_android, 'No. Tlp/HP', student.noHp ?? '-'),
           _buildDetailBox(Icons.card_membership, 'NIK', student.nik),
-
           const SizedBox(height: 20),
           _buildSectionTitle(Icons.location_city, 'Alamat'),
-          _buildDetailBox(Icons.directions, 'Jalan', student.jalan),
-          _buildDetailBox(Icons.format_list_numbered, 'RT/RW', student.rtRw),
+          _buildDetailBox(Icons.directions, 'Jalan', student.jalan ?? '-'),
+          _buildDetailBox(
+              Icons.format_list_numbered, 'RT/RW', student.rtRw ?? '-'),
           _buildDetailBox(Icons.landscape, 'Dusun', student.dusun),
           _buildDetailBox(Icons.home, 'Desa', student.desa),
           _buildDetailBox(Icons.local_taxi, 'Kecamatan', student.kecamatan),
           _buildDetailBox(Icons.domain, 'Kabupaten', student.kabupaten),
           _buildDetailBox(Icons.map, 'Provinsi', student.provinsi),
-          _buildDetailBox(Icons.markunread_mailbox, 'Kode Pos', student.kodePos),
-
+          _buildDetailBox(
+              Icons.markunread_mailbox, 'Kode Pos', student.kodePos),
           const SizedBox(height: 20),
           _buildSectionTitle(Icons.people, 'Orang Tua/Wali'),
           _buildDetailBox(Icons.man, 'Nama Ayah', student.namaAyah),
           _buildDetailBox(Icons.woman, 'Nama Ibu', student.namaIbu),
           if (student.namaWali != null)
-            _buildDetailBox(Icons.supervisor_account, 'Nama Wali', student.namaWali!),
-          _buildDetailBox(Icons.location_pin, 'Alamat Orang Tua', student.alamatOrangTua),
+            _buildDetailBox(
+                Icons.supervisor_account, 'Nama Wali', student.namaWali!),
+          _buildDetailBox(
+              Icons.location_pin, 'Alamat Orang Tua', student.alamatOrangTua),
         ],
       ),
     );

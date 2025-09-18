@@ -47,13 +47,10 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
   late final TextEditingController _nikController;
   late final TextEditingController _jalanController;
   late final TextEditingController _rtRwController;
-  
-  // New searchable dusun controller
   late final TextEditingController _dusunController;
   String? _selectedDusun;
   List<String> _filteredDusunList = [];
   bool _isDusunDropdownVisible = false;
-  
   String? _selectedDesa;
   String? _selectedKecamatan;
   String? _selectedKabupaten;
@@ -85,11 +82,15 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
 
     // Parse initial date if editing
     if (widget.student?.tanggalLahir != null) {
-      final parsedDate = DateTime.tryParse(widget.student!.tanggalLahir);
-      if (parsedDate != null) {
-        _selectedYear = parsedDate.year;
-        _selectedMonth = parsedDate.month;
-        _selectedDay = parsedDate.day;
+      try {
+        final parts = widget.student!.tanggalLahir.split('-');
+        if (parts.length == 3) {
+          _selectedDay = int.parse(parts[0]);
+          _selectedMonth = int.parse(parts[1]);
+          _selectedYear = int.parse(parts[2]);
+        }
+      } catch (e) {
+        print('Error parsing tanggalLahir: $e');
       }
     }
 
@@ -128,11 +129,8 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
     _nikController = TextEditingController(text: widget.student?.nik ?? '');
     _jalanController = TextEditingController(text: widget.student?.jalan ?? '');
     _rtRwController = TextEditingController(text: widget.student?.rtRw ?? '');
-    
-    // Initialize searchable dusun controller
     _dusunController = TextEditingController(text: widget.student?.dusun ?? '');
     _selectedDusun = widget.student?.dusun;
-    
     _selectedDesa = widget.student?.desa;
     _selectedKecamatan = widget.student?.kecamatan;
     _selectedKabupaten = widget.student?.kabupaten;
@@ -158,49 +156,108 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
     _cacheFormData();
   }
 
-  void _onDusunTextChanged() {
+  void _onDusunTextChanged() async {
     final query = _dusunController.text.toLowerCase();
-    final allDusunNames = _dusunList
-        .map((w) => w.dusun!)
-        .where((d) => d.isNotEmpty)
-        .toSet()
-        .toList();
-
     setState(() {
-      if (query.isEmpty) {
-        _filteredDusunList = allDusunNames..sort();
-      } else {
-        _filteredDusunList = allDusunNames
-            .where((dusun) => dusun.toLowerCase().contains(query))
+      _isDusunDropdownVisible = query.isNotEmpty;
+    });
+
+    if (query.isEmpty) {
+      setState(() {
+        _filteredDusunList = _dusunList
+            .map((w) => w.dusun!)
+            .where((d) => d.isNotEmpty)
+            .toSet()
             .toList()
           ..sort();
+      });
+    } else {
+      try {
+        final filteredDusun = await _wilayahService.searchDusun(query);
+        setState(() {
+          _filteredDusunList = filteredDusun
+              .map((w) => w.dusun!)
+              .where((d) => d.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
+        });
+      } catch (e) {
+        _showError('Error mencari dusun: $e');
       }
-      _isDusunDropdownVisible = query.isNotEmpty && _filteredDusunList.isNotEmpty;
-    });
+    }
   }
 
-  void _selectDusun(String dusun) {
+  void _selectDusun(String dusun) async {
     setState(() {
       _dusunController.text = dusun;
       _selectedDusun = dusun;
       _isDusunDropdownVisible = false;
-      
-      // Clear dependent fields
       _selectedDesa = null;
       _selectedKecamatan = null;
       _selectedKabupaten = null;
       _desaList.clear();
       _kecamatanList.clear();
       _kabupatenList.clear();
+      _provinsiController.text = '';
+      _kodePosController.text = '';
     });
-    
+
+    try {
+      final result = await _wilayahService.getProvinsiAndKodePosByDusun(dusun);
+      if (result != null) {
+        setState(() {
+          _provinsiController.text = result['provinsi'] ?? '';
+          _kodePosController.text = result['kode_pos'] ?? '';
+        });
+      } else {
+        setState(() {
+          _selectedDusun = null;
+          _dusunController.text = '';
+          _selectedDesa = null;
+          _selectedKecamatan = null;
+          _selectedKabupaten = null;
+          _desaList.clear();
+          _kecamatanList.clear();
+          _kabupatenList.clear();
+        });
+        _showError('Data provinsi atau kode pos tidak ditemukan untuk dusun ini. Pilih dusun lain.');
+        return;
+      }
+    } catch (e) {
+      setState(() {
+        _selectedDusun = null;
+        _dusunController.text = '';
+        _selectedDesa = null;
+        _selectedKecamatan = null;
+        _selectedKabupaten = null;
+        _desaList.clear();
+        _kecamatanList.clear();
+        _kabupatenList.clear();
+      });
+      _showError('Error mengambil provinsi dan kode pos: $e');
+      return;
+    }
+
     _loadDesaData(dusun);
-    // Hide keyboard
     FocusScope.of(context).unfocus();
   }
 
   Future<void> _initializeCascadingData() async {
     if (_selectedDusun != null) {
+      try {
+        final result = await _wilayahService.getProvinsiAndKodePosByDusun(_selectedDusun!);
+        if (result != null) {
+          setState(() {
+            _provinsiController.text = result['provinsi'] ?? '';
+            _kodePosController.text = result['kode_pos'] ?? '';
+          });
+        } else {
+          _showError('Data provinsi atau kode pos tidak ditemukan untuk dusun ini.');
+        }
+      } catch (e) {
+        _showError('Error mengambil provinsi dan kode pos: $e');
+      }
       await _loadDesaData(_selectedDusun!);
       if (_selectedDesa != null) {
         await _loadKecamatanData(_selectedDesa!);
@@ -218,26 +275,20 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
       setState(() {
         _dusunList = dusunList;
         _loadingDusun = false;
-        
-        // Initialize filtered list
-        final allDusunNames = dusunList
+        _filteredDusunList = dusunList
             .map((w) => w.dusun!)
             .where((d) => d.isNotEmpty)
             .toSet()
-            .toList()..sort();
-        _filteredDusunList = allDusunNames;
-        
-        // Auto-select first Dusun if available and not editing
+            .toList()
+          ..sort();
         if (_selectedDusun == null && widget.student == null && dusunList.isNotEmpty) {
           final firstDusun = dusunList.first.dusun!;
-          _selectedDusun = firstDusun;
-          _dusunController.text = firstDusun;
-          _loadDesaData(_selectedDusun!);
+          _selectDusun(firstDusun); // Call _selectDusun to populate provinsi and kode_pos
         }
       });
     } catch (e) {
       setState(() => _loadingDusun = false);
-      _showError('Error loading dusun: $e');
+      _showError('Error memuat dusun: $e');
     }
   }
 
@@ -248,7 +299,6 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
       setState(() {
         _desaList = desaList;
         _loadingDesa = false;
-        // Clear subsequent fields
         if (_selectedDesa != null && !desaList.any((d) => d.desa == _selectedDesa)) {
           _selectedDesa = null;
           _selectedKecamatan = null;
@@ -256,13 +306,11 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
           _kecamatanList.clear();
           _kabupatenList.clear();
         }
-        // Auto-select first Desa if available and not editing
         if (_selectedDesa == null && desaList.isNotEmpty && widget.student == null) {
           _selectedDesa = desaList.first.desa;
           _loadKecamatanData(_selectedDesa!);
         }
       });
-      // Force UI refresh after data is loaded
       if (_selectedDesa != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           setState(() {});
@@ -270,7 +318,7 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
       }
     } catch (e) {
       setState(() => _loadingDesa = false);
-      _showError('Error loading desa: $e');
+      _showError('Error memuat desa: $e');
     }
   }
 
@@ -281,19 +329,16 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
       setState(() {
         _kecamatanList = kecamatanList;
         _loadingKecamatan = false;
-        // Clear subsequent fields
         if (_selectedKecamatan != null && !kecamatanList.any((k) => k.kecamatan == _selectedKecamatan)) {
           _selectedKecamatan = null;
           _selectedKabupaten = null;
           _kabupatenList.clear();
         }
-        // Auto-select first Kecamatan if available and not editing
         if (_selectedKecamatan == null && kecamatanList.isNotEmpty && widget.student == null) {
           _selectedKecamatan = kecamatanList.first.kecamatan;
           _loadKabupatenData(_selectedKecamatan!);
         }
       });
-      // Force UI refresh after data is loaded
       if (_selectedKecamatan != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           setState(() {});
@@ -301,7 +346,7 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
       }
     } catch (e) {
       setState(() => _loadingKecamatan = false);
-      _showError('Error loading kecamatan: $e');
+      _showError('Error memuat kecamatan: $e');
     }
   }
 
@@ -312,16 +357,13 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
       setState(() {
         _kabupatenList = kabupatenList;
         _loadingKabupaten = false;
-        // Clear subsequent fields
         if (_selectedKabupaten != null && !kabupatenList.any((k) => k.kabupaten == _selectedKabupaten)) {
           _selectedKabupaten = null;
         }
-        // Auto-select first Kabupaten if available and not editing
         if (_selectedKabupaten == null && kabupatenList.isNotEmpty && widget.student == null) {
           _selectedKabupaten = kabupatenList.first.kabupaten;
         }
       });
-      // Force UI refresh after data is loaded
       if (_selectedKabupaten != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           setState(() {});
@@ -329,7 +371,7 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
       }
     } catch (e) {
       setState(() => _loadingKabupaten = false);
-      _showError('Error loading kabupaten: $e');
+      _showError('Error memuat kabupaten: $e');
     }
   }
 
@@ -339,7 +381,6 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
     );
   }
 
-  // Get days in month
   int _daysInMonth(int year, int month) {
     if (month == 2) {
       return DateTime(year, month + 1, 0).day;
@@ -347,7 +388,6 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
     return month <= 7 ? (month % 2 == 1 ? 31 : 30) : (month % 2 == 0 ? 31 : 30);
   }
 
-  // Cache current form data for the current step
   void _cacheFormData() {
     _formDataCache[_currentStep] = {
       if (_currentStep == 0) ...{
@@ -381,7 +421,6 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
     };
   }
 
-  // Restore form data for the given step
   void _restoreFormData(int step) {
     final cachedData = _formDataCache[step];
     if (cachedData == null) return;
@@ -454,14 +493,26 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
           Validators.phoneValidator(_noHpController.text) == null &&
           Validators.requiredValidator(_nikController.text) == null;
     } else if (_currentStep == 1) {
+      if (_selectedDusun == null) {
+        _showError('Dusun wajib dipilih dari daftar');
+        return false;
+      }
+      if (_provinsiController.text.isEmpty) {
+        _showError('Provinsi tidak ditemukan untuk dusun ini. Pilih dusun lain.');
+        return false;
+      }
+      if (_kodePosController.text.isEmpty) {
+        _showError('Kode pos tidak ditemukan untuk dusun ini. Pilih dusun lain.');
+        return false;
+      }
       return Validators.requiredValidator(_jalanController.text) == null &&
           Validators.requiredValidator(_rtRwController.text) == null &&
           _selectedDusun != null &&
           _selectedDesa != null &&
           _selectedKecamatan != null &&
           _selectedKabupaten != null &&
-          Validators.requiredValidator(_provinsiController.text) == null &&
-          Validators.requiredValidator(_kodePosController.text) == null;
+          _provinsiController.text.isNotEmpty &&
+          _kodePosController.text.isNotEmpty;
     } else if (_currentStep == 2) {
       return Validators.requiredValidator(_namaAyahController.text) == null &&
           Validators.requiredValidator(_namaIbuController.text) == null &&
@@ -470,16 +521,14 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
     return false;
   }
 
-  void _saveStudent() {
+  void _saveStudent() async {
     if (_formKey.currentState!.validate() && _validateCurrentStep()) {
-      // Validate date selection
       if (_selectedYear == null || _selectedMonth == null || _selectedDay == null) {
         _showError('Tanggal Lahir wajib diisi lengkap');
         return;
       }
 
-      // Validate address selections
-      if (_selectedDusun == null || _selectedDesa == null || 
+      if (_selectedDusun == null || _selectedDesa == null ||
           _selectedKecamatan == null || _selectedKabupaten == null) {
         _showError('Alamat wilayah wajib dipilih lengkap');
         return;
@@ -493,14 +542,14 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
 
       setState(() => _showSuccessAnimation = true);
       _successAnimationController.forward();
-      
+
       final student = Student(
         nisn: _nisnController.text.trim(),
         namaLengkap: _namaLengkapController.text.trim(),
         jenisKelamin: _selectedGender ?? '',
         agama: _selectedReligion ?? '',
         tempatLahir: _tempatLahirController.text.trim(),
-        tanggalLahir: "${_selectedDay}-${_selectedMonth}-${_selectedYear}",
+        tanggalLahir: "${_selectedDay!.toString().padLeft(2, '0')}-${_selectedMonth!.toString().padLeft(2, '0')}-$_selectedYear",
         noHp: _noHpController.text.trim(),
         nik: _nikController.text.trim(),
         jalan: _jalanController.text.trim(),
@@ -518,24 +567,30 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
       );
 
       final provider = Provider.of<StudentProvider>(context, listen: false);
-      if (widget.student == null) {
-        provider.addStudent(student);
-      } else {
-        provider.updateStudent(widget.student!.nisn, student);
-      }
+      try {
+        if (widget.student == null) {
+          await provider.addStudent(student);
+        } else {
+          await provider.updateStudent(widget.student!.nisn, student);
+        }
 
-      Future.delayed(const Duration(seconds: 2), () {
+        Future.delayed(const Duration(seconds: 2), () {
+          setState(() => _showSuccessAnimation = false);
+          _successAnimationController.reset();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.student == null ? 'Siswa berhasil ditambahkan ✅' : 'Data siswa berhasil diperbarui ✅',
+              ),
+            ),
+          );
+          Navigator.pop(context);
+        });
+      } catch (e) {
         setState(() => _showSuccessAnimation = false);
         _successAnimationController.reset();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.student == null ? 'Siswa berhasil ditambahkan ✅' : 'Data siswa berhasil diperbarui ✅',
-            ),
-          ),
-        );
-        Navigator.pop(context);
-      });
+        _showError('Gagal menyimpan data: $e');
+      }
     } else {
       _showError('Periksa kembali data yang wajib diisi');
     }
@@ -547,6 +602,7 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
     IconData icon, {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -554,12 +610,13 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
         controller: controller,
         keyboardType: keyboardType,
         validator: validator,
+        readOnly: readOnly,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.lightBlueAccent),
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: readOnly ? Colors.grey[200] : Colors.white,
         ),
       ),
     );
@@ -580,17 +637,20 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               filled: true,
               fillColor: Colors.white,
-              suffixIcon: _loadingDusun 
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(Icons.search, color: Colors.grey[600]),
+              suffixIcon: _loadingDusun
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(Icons.search, color: Colors.grey[600]),
             ),
             validator: (val) {
               if (_selectedDusun == null || _selectedDusun!.isEmpty) {
                 return "Wajib dipilih";
+              }
+              if (!_filteredDusunList.contains(_selectedDusun)) {
+                return "Dusun harus dipilih dari daftar yang tersedia";
               }
               return null;
             },
@@ -627,9 +687,9 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
                       dusun,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: _selectedDusun == dusun 
-                          ? FontWeight.bold 
-                          : FontWeight.normal,
+                        fontWeight: _selectedDusun == dusun
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     leading: Icon(
@@ -638,9 +698,9 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
                       color: Colors.lightBlueAccent,
                     ),
                     onTap: () => _selectDusun(dusun),
-                    tileColor: _selectedDusun == dusun 
-                      ? Colors.lightBlueAccent.withOpacity(0.1) 
-                      : null,
+                    tileColor: _selectedDusun == dusun
+                        ? Colors.lightBlueAccent.withOpacity(0.1)
+                        : null,
                   );
                 },
               ),
@@ -717,7 +777,6 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
 
     return GestureDetector(
       onTap: () {
-        // Hide dropdown when tapping outside
         setState(() {
           _isDusunDropdownVisible = false;
         });
@@ -1040,9 +1099,9 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
                               isEnabled: _selectedKecamatan != null,
                             ),
                             _buildInputField('Provinsi', _provinsiController, Icons.flag,
-                                validator: Validators.requiredValidator),
+                                readOnly: true),
                             _buildInputField('Kode Pos', _kodePosController, Icons.local_post_office,
-                                keyboardType: TextInputType.number, validator: Validators.requiredValidator),
+                                keyboardType: TextInputType.number, readOnly: true),
                           ],
                         ),
                       ),
@@ -1095,7 +1154,7 @@ class _StudentFormPageState extends State<StudentFormPage> with TickerProviderSt
                   ),
                 ],
               ),
-          ],  
+          ],
         ),
       ),
     );
