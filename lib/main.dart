@@ -1,3 +1,4 @@
+import 'package:edu_track/connectivity_service.dart';
 import 'package:flutter/material.dart';
 import 'package:edu_track/providers/student_provider.dart';
 import 'package:provider/provider.dart';
@@ -65,7 +66,7 @@ class EduTrackApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const SplashScreen(),
+         home: SplashScreen(),
       ),
     );
   }

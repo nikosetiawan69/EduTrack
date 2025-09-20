@@ -1,3 +1,4 @@
+import 'package:edu_track/connectivity_service.dart';
 import 'package:flutter/material.dart';
 import 'package:edu_track/models/student.dart';
 

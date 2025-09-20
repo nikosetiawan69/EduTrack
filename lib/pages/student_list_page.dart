@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:edu_track/providers/student_provider.dart';
@@ -6,6 +7,34 @@ import 'package:edu_track/widgets/student_tile.dart';
 
 class StudentListPage extends StatelessWidget {
   const StudentListPage({super.key});
+
+  /// 🔎 Cek apakah benar-benar ada internet
+  Future<bool> _hasInternet() async {
+    try {
+      final result = await InternetAddress.lookup('google.com')
+          .timeout(const Duration(seconds: 2));
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 🔎 Tampilkan popup error
+  void _showNoInternetDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Tidak Ada Internet"),
+        content: const Text("Periksa koneksi internetmu lalu coba lagi."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +83,19 @@ class StudentListPage extends StatelessWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await studentProvider.fetchStudents();
+          final hasInternet = await _hasInternet();
+          if (!hasInternet) {
+            _showNoInternetDialog(context);
+            return;
+          }
+
+          try {
+            await studentProvider.fetchStudents();
+          } catch (_) {
+            if (context.mounted) {
+              _showNoInternetDialog(context);
+            }
+          }
         },
         color: theme.colorScheme.primary,
         backgroundColor: Colors.white,
@@ -81,7 +122,7 @@ class StudentListPage extends StatelessWidget {
                 ),
               );
             }
-            
+
             if (studentProvider.students.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -104,7 +145,7 @@ class StudentListPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'Belum Ada Data Siswa',
+                          'Tolong periksa internet anda ',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.onSurface,
@@ -112,7 +153,7 @@ class StudentListPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Mulai dengan menambahkan siswa pertama Anda',
+                          'Sambungkan ke internet terlebih dahulu',
                           style: theme.textTheme.bodyLarge?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -124,7 +165,8 @@ class StudentListPage extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const StudentFormPage()),
+                                  builder: (context) =>
+                                      const StudentFormPage()),
                             );
                           },
                           icon: const Icon(Icons.add_rounded),
@@ -143,7 +185,7 @@ class StudentListPage extends StatelessWidget {
                 ],
               );
             }
-            
+
             return Column(
               children: [
                 // Header Statistics Card
@@ -210,7 +252,7 @@ class StudentListPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 // Student List
                 Expanded(
                   child: Container(
